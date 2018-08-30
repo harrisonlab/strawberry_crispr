@@ -138,13 +138,13 @@ for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Hawaii_4/*/*/*_sorted.bam); do
   Line=$(echo $Bam | cut -f6 -d '/')
   SampleID=$(echo $Bam | cut -f7 -d '/')
   Prefix=$(echo $Bam | cut -f8 -d '/' | cut -f1 -d '_')
-  Group=$(printf "${Cultivar}_${Line}_${SampleID}")
+  Group=$(printf "${Cultivar} ${Line} ${SampleID}" | sed 's/Hawaii_4/Hawaii 4/g' | sed 's/Albino//g' | sed 's/Hawaii 4 WT 0/Hawaii 4 WT/g' | sed 's/FV//g' | sed 's/Hawaii 4 1 0/Hawaii 4 1 A/g' | sed 's/Calypso WT 0/Calypso WT/g')
   printf "$FileName\t$Bam\t$Locus\t$Cultivar\t$Line\t$SampleID\t$Prefix\t$Group\n"
 done >> analysis/variants/metadata.tsv
 ```
 
 Open R and start the analysis pipeline:
-
+<!--
 ```R
 library(CrispRVariants)
 library("gdata")
@@ -274,7 +274,7 @@ p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 8,
 plot_name <- "/Users/armita/Downloads/strawberry_crispr_Hawaii_4_line10.pdf"
 ggsave(plot_name, plot = p, width =30, height = 15, units = "cm", limitsize = FALSE)
 ```
-
+ -->
 
 
 
@@ -338,6 +338,10 @@ crispr_function <- function(md, prefix) {
   #---
   # Step 4a Adding gene annotation
   #---
+  library(GenomicFeatures)
+  gtf_fname <- "alignment/reference/Fragaria_vesca_v4.0.a1.transcripts_parsed.gff3"
+  txdb <- GenomicFeatures::makeTxDbFromGFF(gtf_fname, format = "gff")
+  saveDb(txdb, file= "alignment/reference/Fv4_PDS74_transcripts_txdb.sqlite")
 
   #---
   # Step 4b Creating summary plots of variants
@@ -357,27 +361,50 @@ crispr_function <- function(md, prefix) {
 
 
   p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 6,
-      row.ht.ratio = c(1,5), col.wdth.ratio = c(4,2),
-      plotAlignments.args = list(line.weight = 0.5, ins.size = 2,
+      row.ht.ratio = c(2,5), col.wdth.ratio = c(4,2),
+      plotAlignments.args = list(line.weight = 1.0, ins.size = 2,
                                  legend.symbol.size = 4
-                                 , min.freq = 10),
-      plotFreqHeatmap.args = list(plot.text.size = 3, x.size = 8, group = group,
-                                  group.colours = grp, legend.text.size = 8,
-                                  legend.key.height = grid::unit(0.5, "lines")
+                                 , min.freq = 10, plot.text.size = 4, axis.text.size = 12),
+      plotFreqHeatmap.args = list(plot.text.size = 3, x.size = 12, x.angle = 45, group = group,
+                                  group.colours = grp, legend.text.size = 10,
+                                  legend.key.height = grid::unit(1.0, "lines")
                                   , min.freq = 10, type = "counts", header = "counts"),
       left.plot.margin = ggplot2::unit(c(0.1,0.1,5,0.5), "lines")
                                 )
-  plot_name <- paste("/Users/armita/Downloads/", t ,".pdf", sep = '')
 
   w = 20 + (1.5 * ncolumns)
   h = 5 + (1 * ncolumns)
 
+  plot_name <- paste("/Users/armita/Downloads/", t ,".pdf", sep = '')
+  ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+  plot_name <- paste("/Users/armita/Downloads/", t ,".eps", sep = '')
+  ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+  plot_name <- paste("/Users/armita/Downloads/", t ,".jpg", sep = '')
   ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
 }
 
 ```
 
-<!--
+
+## Make specific plots for figures in the paper:
+
+```bash
+mkdir -p analysis/variants
+printf "FileName\tLocation\tLocus\tCultivar\tLine\tSampleID\tPrefix\tGroup\n" > analysis/variants/metadata_figs.tsv
+for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Calypso/*/*/*_sorted.bam | grep -e 'Calypso/1/' -e 'Calypso/5/' -e 'Calypso/94/' -e 'Calypso/WT/'); do
+# for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Hawaii_4/*/*/*_sorted.bam | grep -w -e '89' -e '39' -e 'WT'); do
+  Directory=$(dirname $Bam)
+  FileName=$(basename $Bam)
+  Locus=$(echo $Bam | cut -f4 -d '/')
+  Cultivar=$(echo $Bam | cut -f5 -d '/')
+  Line=$(echo $Bam | cut -f6 -d '/')
+  SampleID=$(echo $Bam | cut -f7 -d '/')
+  Prefix=$(echo $Bam | cut -f8 -d '/' | cut -f1 -d '_')
+  Group=$(printf "${Cultivar} ${Line} ${SampleID}" | sed 's/Hawaii_4/Hawaii 4/g' | sed 's/Albino//g' | sed 's/Hawaii 4 WT 0/Hawaii 4 WT/g' | sed 's/FV//g' | sed 's/Hawaii 4 1 0/Hawaii 4 1 A/g' | sed 's/Calypso WT 0/Calypso WT/g')
+  printf "$FileName\t$Bam\t$Locus\t$Cultivar\t$Line\t$SampleID\t$Prefix\t$Group\n"
+done >> analysis/variants/metadata_figs.tsv
+```
+
 Run the R analysis above iterating through cultivar and lines
 
 ```R
@@ -390,87 +417,99 @@ setwd('/Users/armita/cluster_mount/groups/harrisonlab/project_files/strawberry_c
 # Step 1 Load the metadata file
 #---
 
-md_all <- read.table("analysis/variants/metadata.tsv", sep = '\t',header = TRUE)
+md_all <- read.table("analysis/variants/metadata_figs.tsv", sep = '\t',header = TRUE)
 md_all$analysis <- as.factor(paste(md_all$Cultivar, md_all$Line, sep = '_'))
 
-t <- 'Hawaii_4_39'
 
-md <- subset(md_all, md_all$analysis == t | md_all$analysis == 'Hawaii_4_WT')
+md <- md_all
+t <- "Calypso_FigX"
+# t <- "Hawaii_4_FigX"
 
-
-
-
-bam_fnames <- file.path(md$Location)
-all( file.exists(bam_fnames))
-#---
-# Step 2 Create the target location and reference sequence
-#---
-
-#---
-# Step 2b Loading a previously saved reference sequence object
-#---
-# We’ll load the previously saved reference sequence.
-# Note the NGG sequence (here, TGG) is present with the 5 extra bases on the end.
-load("alignment/reference/Fv4_PDS74.rda")
-reference
-
-#---
-# Step 3 Creating a CriprSet
-#---
-# This step loads data into a crispr_set object for analysis
-df1 <- data.frame(chr="Fvb4", start=16333700, end=16333722, strand=c("-"), score=0)
-gd <- makeGRangesFromDataFrame(df1)
-gdl <- GenomicRanges::resize(gd, width(gd) + 10, fix = "center")
-
-# Data can now be loaded into the object
-# "Note that the zero point (target.loc parameter) is 22"
-# ^ I dont know what this refers to!
-crispr_set <- readsToTarget(bam_fnames, target = gdl, reference = reference,
-                            names = md$Group, target.loc = 22)
+crispr_function(md, t)
 
 
-# The counts table can be accessed with the "variantCounts" function
-vc <- variantCounts(crispr_set)
-print(class(vc))
-nrow(vc)
+crispr_function <- function(md, prefix) {
+  bam_fnames <- file.path(md$Location)
+  all( file.exists(bam_fnames))
+  #---
+  # Step 2 Create the target location and reference sequence
+  #---
 
-#---
-# Step 4a Adding gene annotation
-#---
+  #---
+  # Step 2b Loading a previously saved reference sequence object
+  #---
+  # We’ll load the previously saved reference sequence.
+  # Note the NGG sequence (here, TGG) is present with the 5 extra bases on the end.
+  load("alignment/reference/Fv4_PDS74.rda")
+  reference
 
-#---
-# Step 4b Creating summary plots of variants
-#---
-# We now load the the previously saved database
+  #---
+  # Step 3 Creating a CriprSet
+  #---
+  # This step loads data into a crispr_set object for analysis
+  df1 <- data.frame(chr="Fvb4", start=16333700, end=16333722, strand=c("-"), score=0)
+  gd <- makeGRangesFromDataFrame(df1)
+  gdl <- GenomicRanges::resize(gd, width(gd) + 10, fix = "center")
 
-# The gridExtra package is required to specify the legend.key.height
-# as a "unit" object. It is not needed to call plotVariants() with defaults
-
-# Match the clutch id to the column names of the variants
-group <- as.factor(md$Group)
-group <- droplevels(group)
-
-# Set variable to colour all x labels black
-ncolumns <- ncol(vc)
-grp <- rep("black", each = ncolumns)
+  # Data can now be loaded into the object
+  # "Note that the zero point (target.loc parameter) is 22"
+  # ^ I dont know what this refers to!
+  crispr_set <- readsToTarget(bam_fnames, target = gdl, reference = reference,
+                              names = md$Group, target.loc = 22)
 
 
-p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 6,
-    row.ht.ratio = c(1,5), col.wdth.ratio = c(4,2),
-    plotAlignments.args = list(line.weight = 0.5, ins.size = 2,
-                               legend.symbol.size = 4
-                               , min.freq = 10),
-    plotFreqHeatmap.args = list(plot.text.size = 3, x.size = 8, group = group,
-                                group.colours = grp, legend.text.size = 8,
-                                legend.key.height = grid::unit(0.5, "lines")
-                                , min.freq = 10, type = "counts", header = "counts"),
-    left.plot.margin = ggplot2::unit(c(0.1,0.1,5,0.5), "lines")
-                              )
-plot_name <- paste("/Users/armita/Downloads/", t ,".pdf", sep = '')
+  # The counts table can be accessed with the "variantCounts" function
+  vc <- variantCounts(crispr_set)
+  print(class(vc))
+  nrow(vc)
 
-w = 20 + (1.5 * ncolumns)
-h = 5 + (1 * ncolumns)
+  #---
+  # Step 4a Adding gene annotation
+  #---
+  library(GenomicFeatures)
+  gtf_fname <- "alignment/reference/Fragaria_vesca_v4.0.a1.transcripts_parsed.gff3"
+  txdb <- GenomicFeatures::makeTxDbFromGFF(gtf_fname, format = "gff")
+  saveDb(txdb, file= "alignment/reference/Fv4_PDS74_transcripts_txdb.sqlite")
 
-ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+  #---
+  # Step 4b Creating summary plots of variants
+  #---
+  # We now load the the previously saved database
 
-``` -->
+  # The gridExtra package is required to specify the legend.key.height
+  # as a "unit" object. It is not needed to call plotVariants() with defaults
+
+  # Match the clutch id to the column names of the variants
+  group <- as.factor(md$Group)
+  group <- droplevels(group)
+
+  # Set variable to colour all x labels black
+  ncolumns <- ncol(vc)
+  grp <- rep("black", each = ncolumns)
+
+
+  p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 6,
+      row.ht.ratio = c(0,5), col.wdth.ratio = c(4,2),
+      plotAlignments.args = list(line.weight = 1.0, ins.size = 2,
+                                 legend.symbol.size = 4
+                                 , min.freq = 10, plot.text.size = 4, axis.text.size = 12),
+      plotFreqHeatmap.args = list(plot.text.size = 3, x.size = 12, x.angle = 45, group = group,
+                                  group.colours = grp, legend.text.size = 10,
+                                  legend.key.height = grid::unit(1.0, "lines")
+                                  , min.freq = 10, type = "counts", header = "counts"),
+      left.plot.margin = ggplot2::unit(c(0.1,0.1,5,0.5), "lines")
+                                )
+
+  # w = 20 + (1.5 * ncolumns)
+  # h = 5 + (1 * ncolumns)
+  w = 20 + (1.7 * ncolumns)
+  h = 5 + (0.8 * ncolumns)
+
+  plot_name <- paste("/Users/armita/Downloads/", t ,".pdf", sep = '')
+  ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+  plot_name <- paste("/Users/armita/Downloads/", t ,".eps", sep = '')
+  ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+  plot_name <- paste("/Users/armita/Downloads/", t ,".jpg", sep = '')
+  ggsave(plot_name, plot = p, width =w, height = h, units = "cm", limitsize = FALSE)
+}
+```
