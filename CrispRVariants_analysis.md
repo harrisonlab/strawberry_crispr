@@ -391,8 +391,8 @@ crispr_function <- function(md, prefix) {
 ```bash
 mkdir -p analysis/variants
 printf "FileName\tLocation\tLocus\tCultivar\tLine\tSampleID\tPrefix\tGroup\n" > analysis/variants/metadata_figs.tsv
-for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Calypso/*/*/*_sorted.bam | grep -e 'Calypso/1/' -e 'Calypso/5/' -e 'Calypso/94/' -e 'Calypso/WT/'); do
-# for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Hawaii_4/*/*/*_sorted.bam | grep -w -e '89' -e '39' -e 'WT'); do
+# for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Calypso/*/*/*_sorted.bam | grep -e 'Calypso/1/' -e 'Calypso/5/' -e 'Calypso/94/' -e 'Calypso/WT/'); do
+for Bam in $(ls alignment/bwa/vs_vesca/PDS74/Hawaii_4/*/*/*_sorted.bam | grep -w -e '89' -e '39' -e 'WT'); do
   Directory=$(dirname $Bam)
   FileName=$(basename $Bam)
   Locus=$(echo $Bam | cut -f4 -d '/')
@@ -422,8 +422,8 @@ md_all$analysis <- as.factor(paste(md_all$Cultivar, md_all$Line, sep = '_'))
 
 
 md <- md_all
-t <- "Calypso_FigX"
-# t <- "Hawaii_4_FigX"
+# t <- "Calypso_FigX"
+t <- "Hawaii_4_FigX"
 
 crispr_function(md, t)
 
@@ -489,11 +489,11 @@ crispr_function <- function(md, prefix) {
 
 
   p <- plotVariants(crispr_set, txdb = txdb, gene.text.size = 6,
-      row.ht.ratio = c(0,5), col.wdth.ratio = c(4,2),
+      row.ht.ratio = c(0,5), col.wdth.ratio = c(6,5),
       plotAlignments.args = list(line.weight = 1.0, ins.size = 2,
                                  legend.symbol.size = 4
-                                 , min.freq = 10, plot.text.size = 4, axis.text.size = 12),
-      plotFreqHeatmap.args = list(plot.text.size = 3, x.size = 12, x.angle = 45, group = group,
+                                 , min.freq = 10, plot.text.size = 4, axis.text.size = 15),
+      plotFreqHeatmap.args = list(plot.text.size = 4, x.size = 15, x.angle = 45, group = group,
                                   group.colours = grp, legend.text.size = 10,
                                   legend.key.height = grid::unit(1.0, "lines")
                                   , min.freq = 10, type = "counts", header = "counts"),
